@@ -1,1 +1,1 @@
-12ksuioke.github.io
+https://12ksuioke.github.io/
