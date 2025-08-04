@@ -1,19 +1,167 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
-  <title>Trang chủ dự án</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8"/>
+  <title>Check acc LQ – Local Clone</title>
+
+  <!-- Tailwind & SweetAlert -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"/>
+
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    .glass { background: rgba(255,255,255,.08); backdrop-filter: blur(8px); }
+  </style>
 </head>
-<body>
-  <h1>Chào mừng bạn đến với trang chủ dự án!</h1>
-  <p>Đây là trang index.html mới thay thế cho các trang giới thiệu trước đó.</p>
-  <ul>
-    <li>Dự án phục vụ học tập và nghiên cứu.</li>
-    <li>Dễ dàng mở rộng và đóng góp.</li>
-    <li>Liên hệ hoặc đóng góp qua GitHub.</li>
-  </ul>
-  <hr>
-  <p>Cảm ơn bạn đã ghé thăm!</p>
+
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+
+<div class="max-w-3xl mx-auto pt-10 px-4">
+  <!-- Header -->
+  <h1 class="text-3xl font-bold text-center mb-2">
+    <i class="fas fa-shield-alt text-purple-400"></i> Check acc Liên Quân
+  </h1>
+  <p class="text-center text-sm text-slate-300 mb-6">
+    Đang online: <span id="online">0</span> · Lượt truy cập: <span id="visit">0</span>
+  </p>
+
+  <!-- Server cards -->
+  <div class="grid md:grid-cols-2 gap-4 mb-6">
+    <div id="srv1" class="glass rounded-xl p-4 text-center cursor-pointer hover:bg-purple-600/20 transition" onclick="ping(1)">
+      <i class="fas fa-server text-green-400 text-2xl mb-2"></i>
+      <p class="font-semibold">MÁY CHỦ 1</p>
+      <p class="text-xs text-slate-300">Ping: <span id="p1">Đang kiểm tra...</span></p>
+      <p class="text-xs text-slate-400">API mặc định – Tốc độ cao</p>
+    </div>
+
+    <div id="srv2" class="glass rounded-xl p-4 text-center cursor-pointer hover:bg-purple-600/20 transition" onclick="ping(2)">
+      <i class="fas fa-server text-blue-400 text-2xl mb-2"></i>
+      <p class="font-semibold">MÁY CHỦ 2</p>
+      <p class="text-xs text-slate-300">Ping: <span id="p2">Đang kiểm tra...</span></p>
+      <p class="text-xs text-slate-400">API dự phòng – Ổn định</p>
+    </div>
+  </div>
+
+  <!-- Upload area -->
+  <div class="glass rounded-xl p-6 mb-4">
+    <label for="file" class="block mb-2 text-sm font-medium">Upload file .txt (user|pass hoặc user:pass)</label>
+    <div id="dropZone"
+         class="border-2 border-dashed border-slate-500 rounded-lg p-6 text-center hover:border-purple-400 transition">
+      <i class="fas fa-cloud-upload-alt text-4xl mb-2 text-slate-400"></i>
+      <p class="text-sm text-slate-300">Kéo thả hoặc click để chọn</p>
+      <input id="file" type="file" accept=".txt" class="hidden"/>
+    </div>
+    <textarea id="manual"
+              rows="4"
+              placeholder="Dán danh sách tài khoản...&#10;user1|pass1&#10;user2|pass2"
+              class="w-full bg-transparent border border-slate-600 rounded mt-3 p-2 text-sm"></textarea>
+  </div>
+
+  <!-- Options -->
+  <div class="glass rounded-xl p-4 mb-6 text-sm grid grid-cols-2 gap-x-4 gap-y-2">
+    <label class="flex items-center"><input type="checkbox" id="ban" checked class="mr-2"/> Lọc Band</label>
+    <label class="flex items-center"><input type="checkbox" id="ttt" class="mr-2"/> Chỉ TTT</label>
+    <label class="flex items-center"><input type="checkbox" id="max" checked class="mr-2"/> Max luồng</label>
+    <label class="flex items-center"><input type="checkbox" id="history" class="mr-2"/> Lưu lịch sử</label>
+  </div>
+
+  <!-- Action -->
+  <div class="text-center">
+    <button onclick="check(1)" class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-lg mr-2"><i class="fas fa-play"></i> Check Server 1</button>
+    <button onclick="check(2)" class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded-lg"><i class="fas fa-play"></i> Check Server 2</button>
+  </div>
+
+  <!-- Result -->
+  <div id="result" class="glass rounded-xl p-4 mt-6 hidden">
+    <h3 class="font-bold mb-2"><i class="fas fa-list"></i> Kết quả</h3>
+    <pre id="json" class="text-sm overflow-x-auto"></pre>
+  </div>
+</div>
+
+<script>
+/* ---------- util ---------- */
+const $ = sel => document.querySelector(sel);
+
+/* ---------- ping ---------- */
+async function ping(srv) {
+  const el = $(`#p${srv}`);
+  el.textContent = 'Đang đo...';
+  const t0 = performance.now();
+  try {
+    await fetch(`https://api-lq${srv}.vtee.store/check`, {method:'OPTIONS'});
+    el.textContent = (performance.now() - t0).toFixed(0) + ' ms';
+  } catch { el.textContent = 'Lỗi kết nối'; }
+}
+
+/* ---------- drag & drop ---------- */
+['dragenter','dragover','dragleave','drop'].forEach(evt =>
+  $('#dropZone').addEventListener(evt, e => e.preventDefault()));
+['dragenter','dragover'].forEach(evt =>
+  $('#dropZone').addEventListener(evt, () => $('#dropZone').classList.add('border-purple-400')));
+['dragleave','drop'].forEach(evt =>
+  $('#dropZone').addEventListener(evt, () => $('#dropZone').classList.remove('border-purple-400')));
+$('#dropZone').addEventListener('drop', e => {
+  $('#file').files = e.dataTransfer.files;
+});
+$('#file').addEventListener('change', () => {
+  if ($('#file').files.length) $('#manual').value = '';
+});
+
+/* ---------- parse accounts ---------- */
+function getAccounts() {
+  let raw = $('#manual').value.trim();
+  if (!raw && $('#file').files.length) {
+    return new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const acc = reader.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l).map(l=>l.replace(':', '|'));
+        resolve(acc);
+      };
+      reader.readAsText($('#file').files[0]);
+    });
+  }
+  return Promise.resolve(raw.split('\n').map(l=>l.trim()).filter(l=>l).map(l=>l.replace(':', '|')));
+}
+
+/* ---------- check ---------- */
+async function check(srv) {
+  const accounts = await getAccounts();
+  if (!accounts.length) return Swal.fire('Thiếu tài khoản!', 'Vui lòng upload file hoặc dán danh sách.', 'warning');
+
+  const payload = {
+    type: "lienquan",
+    accounts,
+    options: {
+      filterBan: $('#ban').checked,
+      filterTTT: $('#ttt').checked,
+      maxThread: $('#max').checked,
+      saveHistory: $('#history').checked
+    }
+  };
+
+  Swal.fire({ title: 'Đang check...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  try {
+    const res = await fetch(`https://api-lq${srv}.vtee.store/check`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    $('#json').textContent = JSON.stringify(data, null, 2);
+    $('#result').classList.remove('hidden');
+  } catch (e) {
+    Swal.fire('Lỗi', e.message || 'Không thể kết nối server', 'error');
+  } finally {
+    Swal.close();
+  }
+}
+
+/* ---------- init ---------- */
+ping(1); ping(2);
+</script>
 </body>
 </html>
